@@ -1,7 +1,7 @@
 require('dotenv').config({ path: '.env.local' });
 
 const Seneca = require('seneca');
-const VespaStore = require('./src/SenecaVespaStore'); // Assuming your SenecaVespaStore plugin is located here
+const VespaStore = require('./src/SenecaVespaStore');
 
 async function run() {
   const seneca = Seneca({ legacy: false })
@@ -10,8 +10,8 @@ async function run() {
     .use('entity')
     .use(VespaStore, {
       vespa: {
-        endpoint: process.env.SENECA_VESPA_ENDPOINT, // Your Vespa endpoint
-        application: process.env.SENECA_VESPA_APPLICATION, // Your Vespa application
+        endpoint: process.env.SENECA_VESPA_ENDPOINT,
+        application: process.env.SENECA_VESPA_APPLICATION,
       },
       debug: true,
     });
@@ -23,11 +23,10 @@ async function run() {
     someField: 'Hello Vespa',
     otherField: 'Seneca test'
   };
-  const entityName = 'test/entity'; // Example entity name
+  const entityName = 'test/entity'; 
   const saveResult = await seneca.entity(entityName).data$(testEntityData).save$();
   console.log('Entity saved:', saveResult);
 
-  // Assuming your entity has an id field set by Vespa or you
   const entityId = saveResult.id;
   console.log(`Loading entity with id ${entityId}`);
 

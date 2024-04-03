@@ -13,8 +13,8 @@ describe('VespaStore', () => {
       .use('entity')
       .use(VespaStore, {
         vespa: {
-          endpoint: process.env.SENECA_VESPA_ENDPOINT, // Ensure this is set in your .env.local
-          application: process.env.SENECA_VESPA_APPLICATION, // Ensure this is set in your .env.local
+          endpoint: process.env.SENECA_VESPA_ENDPOINT, 
+          application: process.env.SENECA_VESPA_APPLICATION,
         },
         debug: true,
       });
