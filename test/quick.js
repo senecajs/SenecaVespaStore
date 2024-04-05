@@ -1,61 +1,38 @@
-require('dotenv').config({ path: '.env.local' })
-// console.log(process.env) // remove this
+require('dotenv').config({ path: '.env.local' });
 
-const Seneca = require('seneca')
-
-run()
+const Seneca = require('seneca');
+const VespaStore = require('./src/SenecaVespaStore');
 
 async function run() {
   const seneca = Seneca({ legacy: false })
     .test()
     .use('promisify')
     .use('entity')
-    .use('..', {
-      map: {
-        'foo/chunk': '*',
+    .use(VespaStore, {
+      vespa: {
+        endpoint: process.env.SENECA_VESPA_ENDPOINT,
+        application: process.env.SENECA_VESPA_APPLICATION,
       },
-      index: {
-        exact: process.env.SENECA_OPENSEARCH_TEST_INDEX,
-      },
-      opensearch: {
-        node: process.env.SENECA_OPENSEARCH_TEST_NODE,
-      },
-    })
+      debug: true,
+    });
 
-  await seneca.ready()
+  await seneca.ready();
 
-  // console.log(await seneca.entity('bar/qaz').data$({q:1}).save$())
+  // Save an entity
+  const testEntityData = {
+    someField: 'Hello Vespa',
+    otherField: 'Seneca test'
+  };
+  const entityName = 'test/entity'; 
+  const saveResult = await seneca.entity(entityName).data$(testEntityData).save$();
+  console.log('Entity saved:', saveResult);
 
-  /*
-  const save0 = await seneca.entity('foo/chunk')
-        .make$()
-        .data$({
-          x:3,
-          o:{m:'M2',n:3}, 
-          text: 't03',
-          vector: [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.6],
-          directive$:{vector$:true},
-        })
-        .save$()
-  console.log('save0', save0)
-  */
+  const entityId = saveResult.id;
+  console.log(`Loading entity with id ${entityId}`);
 
-  // const id = '1%3A0%3Au0rACY4BB33NxQZdwDrQ'
-  // const id = 'notanid'
-  //const id = '1%3A0%3AvUrfCY4BB33NxQZd-DrZ'
-  const id = '1%3A0%3AvUrfCY4BB33NxQZd-DrQ'
-  const load0 = await seneca.entity('foo/chunk').load$(id)
-  console.log('load0', load0)
-
-  /*
-  const list0 = await seneca.entity('foo/chunk').list$({
-    // x:2
-    directive$:{vector$:true},
-    vector:[0.1,0.1,0.2,0.3,0.4,0.5,0.6,0.7],
-  })
-  console.log('list0', list0)
-
-
-  console.log(await seneca.entity('bar/qaz').list$())
-  */
+  // Load the entity
+  const loadResult = await seneca.entity(entityName).load$(entityId);
+  console.log('Entity loaded:', loadResult);
 }
+
+run().catch(err => console.error(err));
