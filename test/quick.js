@@ -10,29 +10,26 @@ async function run() {
     .use('entity')
     .use(VespaStore, {
       vespa: {
-        endpoint: process.env.SENECA_VESPA_ENDPOINT,
-        application: process.env.SENECA_VESPA_APPLICATION,
+        endpoint: process.env.SENECA_VESPA_ENDPOINT, // Ensure this points to http://localhost:8080 for local Vespa
+        application: process.env.SENECA_VESPA_APPLICATION, // Your Vespa application name
       },
       debug: true,
     });
 
   await seneca.ready();
 
-  // Save an entity
-  const testEntityData = {
-    someField: 'Hello Vespa',
-    otherField: 'Seneca test'
-  };
-  const entityName = 'test/entity'; 
-  const saveResult = await seneca.entity(entityName).data$(testEntityData).save$();
-  console.log('Entity saved:', saveResult);
+  // Example: Query Vespa for music albums that contain 'head'
+  const queryResult = await seneca.act('role:vespa,cmd:query', {
+    query: "select * from music where album contains 'head'"
+  });
+  console.log('Query result:', queryResult);
 
-  const entityId = saveResult.id;
-  console.log(`Loading entity with id ${entityId}`);
-
-  // Load the entity
-  const loadResult = await seneca.entity(entityName).load$(entityId);
-  console.log('Entity loaded:', loadResult);
+  // Example: Retrieve a specific document by ID
+  const documentId = 'id:mynamespace:music::a-head-full-of-dreams'; // Replace with a valid document ID
+  const documentResult = await seneca.act('role:vespa,cmd:get', {
+    id: documentId
+  });
+  console.log('Document:', documentResult);
 }
 
 run().catch(err => console.error(err));
