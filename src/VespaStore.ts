@@ -1,14 +1,30 @@
 // Copyright © 2024 Seneca Project Contributors, MIT License
 
 import fetch from 'node-fetch';
-import { Gubu } from 'gubu';
+import { Gubu, Open, Any } from 'gubu';
 
-export type VespaStoreOptions = {
+type VespaStoreOptions = {
   vespa: {
     endpoint: string; // Vespa endpoint
     application: string; // Vespa application name
   };
   debug: boolean;
+  index: {
+    prefix: string;
+    suffix: string;
+    exact?: string;
+  };
+  field: {
+    zone: { name: string };
+    base: { name: string };
+    name: { name: string };
+    vector: { name: string };
+  };
+  cmd: {
+    list: {
+      size: number;
+    };
+  };
 };
 
 function SenecaVespaStore(this: any, options: VespaStoreOptions) {
@@ -60,13 +76,49 @@ function SenecaVespaStore(this: any, options: VespaStoreOptions) {
       }
     },
 
-    //I'm going to Add more operations here
+    remove: async function (msg: any, reply: any) {
+      try {
+        const response = await fetch(`${options.vespa.endpoint}/${options.vespa.application}/document/v1/${msg.ent.entity$}/docid/${msg.q.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        reply(null, { status: 'removed' });
+      } catch (error) {
+        reply(error);
+      }
+    },
+
+    list: async function (msg: any, reply: any) {
+      const query = msg.query || 'select * from sources * where true;';
+      const size = msg.size || options.cmd.list.size;
+
+      try {
+        const response = await fetch(`${options.vespa.endpoint}/search/?yql=${encodeURIComponent(query)}&hits=${size}`, {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: any = await response.json();
+        const list = data.root.children.map((item: any) => item.fields);
+        reply(null, list);
+      } catch (error) {
+        reply(error);
+      }
+    },
   };
 
-  this.add('init:SenecaVespaStore', function (msg: any, respond: any) {
-    console.log('SenecaVespaStore initialized');
-    respond();
-  });
+  // Adding Seneca patterns for each operation
+  this.add('role:vespa,cmd:save', store.save);
+  this.add('role:vespa,cmd:load', store.load);
+  this.add('role:vespa,cmd:remove', store.remove);
+  this.add('role:vespa,cmd:list', store.list);
 
   return {
     name: store.name,
